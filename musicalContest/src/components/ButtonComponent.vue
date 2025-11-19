@@ -2,44 +2,39 @@
   <router-link
     v-if="to"
     :to="to"
-    :class="buttonClasses"
+    :class="[
+      'flex items-center gap-2 px-5 py-2.5 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 ease-in-out',
+      isActive ? 'bg-white text-secondary' : ''
+    ]"
   >
-    <font-awesome-icon v-if="icon" :icon="icon" />
+    <IconComponent :icon="icon"/>
     <span><slot>{{ label }}</slot></span>
   </router-link>
 
-  <button v-else :class="buttonClasses">
-    <font-awesome-icon v-if="icon" :icon="icon" />
+  <button v-else class="flex justify-center items-center gap-2 px-5 py-2.5 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 ease-in-out">
+    <IconComponent :icon="icon"/>
     <span><slot>{{ label }}</slot></span>
   </button>
 </template>
 
 <script setup>
-import { computed } from 'vue' 
-import { useRoute } from 'vue-router'
+import { computed } from 'vue';       // Importamos "computed" para crear propiedades reactivas calculadas
+import { useRoute } from 'vue-router'; // Importamos "useRoute" para acceder a la ruta actual del navegador
+import IconComponent from './IconComponent.vue';
 
-const props = defineProps({
-  label: { type: String, default: '' },
-  icon: { type: [String, Array], default: null },
-  to: { type: [String, Object], default: null },
-  variant: { type: String, default: 'primary' }
-})
+// Definimos las propiedades que el componente recibirá desde el padre (Header)
+const { label, icon, to } = defineProps({
+  label: { type: String, default: '' },      
+  icon: { type: [String, Array], default: null }, 
+  to: { type: [String, Object], default: null },  
+});
 
-const route = useRoute()
+// Obtenemos la información de la ruta actual
+const route = useRoute();
 
-const isActive = computed(() => {
-  if (!props.to) return false
-  // Compara con la ruta actual (ajusta según necesitas)
-  return route.path === (typeof props.to === 'string' ? props.to : props.to.path)
-})
+// Computed que nos dice si el botón está activo (es decir, si la ruta del botón coincide con la actual)
+const isActive = computed(() => 
+  to && route.path === to 
+);
 
-const buttonClasses = computed(() => {
-  const base = 'flex items-center gap-2 px-5 py-2.5 text-white rounded-2xl shadow-md hover:shadow-lg transition-all duration-200 ease-in-out'
-  // Si está activo fuerzo primary, si no uso variant
-  const color = isActive.value
-    ? 'bg-primary hover:bg-primary-dark'
-    : (props.variant === 'secondary' ? 'bg-secondary hover:bg-secondary-dark' : 'bg-primary hover:bg-primary-dark')
-
-  return `${base} ${color}`
-})
 </script>

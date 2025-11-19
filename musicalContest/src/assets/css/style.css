@@ -34,3 +34,13 @@
   --color-text-light: #f1f5f9;
   --color-text-dark: #0f172a;
 }
+
+@layer components{
+  .bg-gradient-primary {
+    @apply bg-gradient-to-r from-primary via-secondary to-accent
+  }
+
+    .bg-gradient-primary-light {
+    @apply bg-gradient-to-r from-primary-light via-secondary-light to-accent-light
+  }
+}
