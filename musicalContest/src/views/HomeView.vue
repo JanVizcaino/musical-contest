@@ -9,8 +9,18 @@
         </p>
       </div>
       <div class="flex justify-center gap-8">
-        <ButtonComponent class="bg-primary" label="Comenzar a jugar" icon="play" to="/play" />
-        <ButtonComponent class="bg-secondary" label="See ranking" icon="star" to="/ranking" />
+        <ButtonComponent
+          class="bg-primary rounded-xl"
+          label="Comenzar a jugar"
+          icon="play"
+          to="/play"
+        />
+        <ButtonComponent
+          class="bg-secondary rounded-xl"
+          label="See ranking"
+          icon="star"
+          to="/ranking"
+        />
       </div>
     </div>
   </section>
@@ -42,9 +52,7 @@
       </div>
     </div>
   </section>
-  <section
-    class="h-64 w-full bg-gradient-primary flex items-center justify-center text-white"
-  >
+  <section class="h-64 w-full bg-gradient-primary flex items-center justify-center text-white">
     <div class="max-w-3xl md:max-w-5xl flex gap-22 md:gap-62 text-center mx-auto">
       <StatComponent stat="100" title="Puntos máximos" />
       <StatComponent stat="10" title="Preguntas por partida" />
@@ -58,14 +66,19 @@
       <IconComponent icon="star" class="text-3xl text-white" />
       <h1 class="text-xl">¿Listo para el desafío?</h1>
       <p>Demuestra que eres un experto musical y alcanza el top en el ranking</p>
-      <ButtonComponent class="bg-white text-secondary" label="Empezar ahora" icon="play" to="/play" />
+      <ButtonComponent
+        class="bg-white text-secondary rounded-xl"
+        label="Empezar ahora"
+        icon="play"
+        to="/play"
+      />
     </div>
   </section>
 </template>
 
 <script setup>
 import ButtonComponent from '@/components/ButtonComponent.vue'
-import IconComponent from '@/components/IconComponent.vue';
+import IconComponent from '@/components/IconComponent.vue'
 import InfoCard from '@/components/InfoCard.vue'
 import StatComponent from '@/components/StatComponent.vue'
 </script>
