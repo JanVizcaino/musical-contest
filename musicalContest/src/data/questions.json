@@ -1,30 +1,20 @@
 [
   {
-    "pregunta": "¿Cuál es la canción de Djavan?",
-    "opciones": [
-      "Açaí",
-      "Oceano",
-      "Flor de Lis",
-      "Samurai"
-    ],
+    "pregunta": "¿Cuál es la canción de Djavan? -",
+    "opciones": ["Açaí", "Oceano", "Flor de Lis", "Samurai"],
     "respuesta": "Açaí",
     "artista": "Djavan",
     "rutaCancion": "songs/acai.mp3"
   },
   {
-    "pregunta": "¿Cuál es la canción de Amy Winehouse?",
-    "opciones": [
-      "In My Bed",
-      "Rehab",
-      "Back to Black",
-      "Valerie"
-    ],
+    "pregunta": "¿Cuál es la canción de Amy Winehouse? -",
+    "opciones": ["In My Bed", "Rehab", "Back to Black", "Valerie"],
     "respuesta": "In My Bed",
     "artista": "Amy Winehouse",
     "rutaCancion": "songs/in_my_bed.mp3"
   },
   {
-    "pregunta": "¿Cuál es la canción de Otis Redding?",
+    "pregunta": "¿Cuál es la canción de Otis Redding? -",
     "opciones": [
       "Try a Little Tenderness",
       "Sittin' On The Dock of the Bay",
@@ -36,43 +26,28 @@
     "rutaCancion": "songs/try_a_little_tenderness.mp3"
   },
   {
-    "pregunta": "¿Cuál es la canción de Michael Jackson?",
-    "opciones": [
-      "You Rock My World",
-      "Billie Jean",
-      "Thriller",
-      "Smooth Criminal"
-    ],
+    "pregunta": "¿Cuál es la canción de Michael Jackson? -",
+    "opciones": ["You Rock My World", "Billie Jean", "Thriller", "Smooth Criminal"],
     "respuesta": "You Rock My World",
     "artista": "Michael Jackson",
     "rutaCancion": "songs/you_rock_my_world.mp3"
   },
   {
-    "pregunta": "¿Cuál es la canción de Chico Buarque?",
-    "opciones": [
-      "Com Açúcar, Com Afeto",
-      "Fado Tropical",
-      "Construção",
-      "A Banda"
-    ],
+    "pregunta": "¿Cuál es la canción de Chico Buarque? -",
+    "opciones": ["Com Açúcar, Com Afeto", "Fado Tropical", "Construção", "A Banda"],
     "respuesta": "Com Açúcar, Com Afeto",
     "artista": "Chico Buarque",
     "rutaCancion": "songs/com_acucar_com_afeto.mp3"
   },
   {
-    "pregunta": "¿Cuál es otra canción de Chico Buarque?",
-    "opciones": [
-      "Fado Tropical",
-      "Com Açúcar, Com Afeto",
-      "Roda Viva",
-      "Cálice"
-    ],
+    "pregunta": "¿Cuál es otra canción de Chico Buarque? -",
+    "opciones": ["Fado Tropical", "Com Açúcar, Com Afeto", "Roda Viva", "Cálice"],
     "respuesta": "Fado Tropical",
     "artista": "Chico Buarque",
     "rutaCancion": "songs/fado_tropical.mp3"
   },
   {
-    "pregunta": "¿Cuál es la épica canción de Genesis?",
+    "pregunta": "¿Cuál es la épica canción de Genesis? -",
     "opciones": [
       "Supper's Ready - 2007 Stereo Mix",
       "Invisible Touch",
@@ -84,7 +59,7 @@
     "rutaCancion": "songs/suppers_ready_2007.mp3"
   },
   {
-    "pregunta": "¿Cuál es la canción de León Gieco?",
+    "pregunta": "¿Cuál es la canción de León Gieco? -",
     "opciones": [
       "El Ángel De La Bicicleta",
       "Solo Le Pido A Dios",
@@ -96,55 +71,35 @@
     "rutaCancion": "songs/el_angel_de_la_bicicleta.mp3"
   },
   {
-    "pregunta": "¿Cuál es la canción de The Beatles?",
-    "opciones": [
-      "Because - Remastered 2009",
-      "Hey Jude",
-      "Let It Be",
-      "Yesterday"
-    ],
+    "pregunta": "¿Cuál es la canción de The Beatles? -",
+    "opciones": ["Because - Remastered 2009", "Hey Jude", "Let It Be", "Yesterday"],
     "respuesta": "Because - Remastered 2009",
     "artista": "The Beatles",
     "rutaCancion": "songs/because_remastered_2009.mp3"
   },
   {
-    "pregunta": "¿Cuál es la canción de L'Impératrice?",
-    "opciones": [
-      "La lune",
-      "Agitations tropicales",
-      "Vanille fraise",
-      "Matahari"
-    ],
+    "pregunta": "¿Cuál es la canción de L'Impératrice? -",
+    "opciones": ["La lune", "Agitations tropicales", "Vanille fraise", "Matahari"],
     "respuesta": "La lune",
     "artista": "L'Impératrice",
     "rutaCancion": "songs/la_lune.mp3"
   },
   {
-    "pregunta": "¿Cuál es la canción de Extremoduro?",
-    "opciones": [
-      "Si te vas…",
-      "So Payaso",
-      "La vereda de la puerta de atrás",
-      "Jesucristo García"
-    ],
+    "pregunta": "¿Cuál es la canción de Extremoduro? -",
+    "opciones": ["Si te vas…", "So Payaso", "La vereda de la puerta de atrás", "Jesucristo García"],
     "respuesta": "Si te vas…",
     "artista": "Extremoduro",
     "rutaCancion": "songs/si_te_vas.mp3"
   },
   {
-    "pregunta": "¿Cuál es la canción de Chico Buarque?",
-    "opciones": [
-      "Ana De Amsterdam",
-      "Apesar de Você",
-      "O Que Será",
-      "João e Maria"
-    ],
+    "pregunta": "¿Cuál es la canción de Chico Buarque? -",
+    "opciones": ["Ana De Amsterdam", "Apesar de Você", "O Que Será", "João e Maria"],
     "respuesta": "Ana De Amsterdam",
     "artista": "Chico Buarque",
     "rutaCancion": "songs/ana_de_amsterdam.mp3"
   },
   {
-    "pregunta": "¿Cuál es la canción de Charly García?",
+    "pregunta": "¿Cuál es la canción de Charly García? -",
     "opciones": [
       "Pubis Angelical",
       "Monóculo Fantástico",
@@ -156,7 +111,7 @@
     "rutaCancion": "songs/pubis_angelical.mp3"
   },
   {
-    "pregunta": "Otra canción de Charly García",
+    "pregunta": "Otra canción de Charly García -",
     "opciones": [
       "Monóculo Fantástico",
       "Pubis Angelical",
@@ -168,7 +123,7 @@
     "rutaCancion": "songs/monoculo_fantastico.mp3"
   },
   {
-    "pregunta": "¿Cuál es la canción de Amy Winehouse?",
+    "pregunta": "¿Cuál es la canción de Amy Winehouse? -",
     "opciones": [
       "Moody's Mood For Love / Teo Licks",
       "In My Bed",
@@ -180,61 +135,36 @@
     "rutaCancion": "songs/moodys_mood_for_love_teo_licks.mp3"
   },
   {
-    "pregunta": "¿Cuál es la canción de rusowsky?",
-    "opciones": [
-      "esa carita",
-      "mwah",
-      "so so",
-      "bambi"
-    ],
+    "pregunta": "¿Cuál es la canción de rusowsky? -",
+    "opciones": ["esa carita", "mwah", "so so", "bambi"],
     "respuesta": "esa carita",
     "artista": "rusowsky",
     "rutaCancion": "songs/esa_carita.mp3"
   },
   {
-    "pregunta": "¿Cuál es la canción de Joe Hisaishi?",
-    "opciones": [
-      "Nostalgia",
-      "Summer",
-      "One Summer's Day",
-      "Merry-Go-Round of Life"
-    ],
+    "pregunta": "¿Cuál es la canción de Joe Hisaishi? -",
+    "opciones": ["Nostalgia", "Summer", "One Summer's Day", "Merry-Go-Round of Life"],
     "respuesta": "Nostalgia",
     "artista": "Joe Hisaishi, Orchestra Città di Ferrara",
     "rutaCancion": "songs/nostalgia.mp3"
   },
   {
-    "pregunta": "¿Cuál es la canción de Joan Manuel Serrat?",
-    "opciones": [
-      "Balada de Otoño",
-      "Aquellas pequeñas cosas",
-      "Pueblo blanco",
-      "Mediterráneo"
-    ],
+    "pregunta": "¿Cuál es la canción de Joan Manuel Serrat? -",
+    "opciones": ["Balada de Otoño", "Aquellas pequeñas cosas", "Pueblo blanco", "Mediterráneo"],
     "respuesta": "Balada de Otoño",
     "artista": "Joan Manuel Serrat",
     "rutaCancion": "songs/balada_de_otono.mp3"
   },
   {
-    "pregunta": "Otra canción de Joan Manuel Serrat",
-    "opciones": [
-      "Aquellas pequeñas cosas",
-      "Balada de Otoño",
-      "Pueblo blanco",
-      "Cantares"
-    ],
+    "pregunta": "Otra canción de Joan Manuel Serrat -",
+    "opciones": ["Aquellas pequeñas cosas", "Balada de Otoño", "Pueblo blanco", "Cantares"],
     "respuesta": "Aquellas pequeñas cosas",
     "artista": "Joan Manuel Serrat",
     "rutaCancion": "songs/aquellas_pequenas_cosas.mp3"
   },
   {
     "pregunta": "Otra canción de Joan Manuel Serrat",
-    "opciones": [
-      "Pueblo blanco",
-      "Balada de Otoño",
-      "Aquellas pequeñas cosas",
-      "Penélope"
-    ],
+    "opciones": ["Pueblo blanco", "Balada de Otoño", "Aquellas pequeñas cosas", "Penélope"],
     "respuesta": "Pueblo blanco",
     "artista": "Joan Manuel Serrat",
     "rutaCancion": "songs/pueblo_blanco.mp3"

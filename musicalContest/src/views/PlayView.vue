@@ -1,4 +1,5 @@
 <template>
+  <!-- START SCREEN -->
   <section
     v-if="gameState === 'start'"
     class="bg-gradient-primary h-screen flex justify-center items-center p-4"
@@ -31,17 +32,18 @@
           label="Tu nombre"
           v-model="playerName"
         />
-
         <ButtonComponent
           icon="play"
           label="Comenzar el juego"
           class="bg-gradient-primary w-full py-4 text-lg shadow-lg hover:shadow-xl transition-shadow"
+          :disabled="!playerName"
           @click="startGame"
         />
       </div>
     </div>
   </section>
 
+  <!-- GAME SCREEN -->
   <section
     v-else-if="gameState === 'playing'"
     class="bg-gradient-primary h-screen flex justify-center items-center p-4"
@@ -49,6 +51,7 @@
     <div
       class="max-w-xl w-full bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[85vh] md:h-auto"
     >
+      <!-- HEADER -->
       <div class="bg-gray-50 p-6 border-b border-gray-100 flex justify-between items-center">
         <div class="flex items-center gap-3">
           <div
@@ -72,42 +75,51 @@
       </div>
 
       <div class="p-6 flex flex-col gap-6 overflow-y-auto">
+        <!-- PROGRESO -->
         <div class="flex flex-col gap-2">
           <div class="flex justify-between text-sm font-medium text-gray-500">
-            <span>Pregunta {{ songIndex }} de {{ totalSongs }}</span>
+            <span>Pregunta {{ currentIndex + 1 }} de {{ playableSongs }}</span>
           </div>
           <div class="w-full bg-gray-200 rounded-full h-2.5">
             <div
-                class="bg-primary h-2.5 rounded-full transition-all duration-500"
-                :style="{ width: progressWidth }"
+              class="bg-primary h-2.5 rounded-full transition-all duration-500"
+              :style="{ width: progressWidth }"
             ></div>
           </div>
         </div>
 
+        <!-- REPRODUCTOR / INFO -->
         <div
           class="bg-gradient-to-br from-primary/5 to-primary/10 rounded-2xl p-6 flex flex-col items-center justify-center gap-6 border border-primary/10"
         >
-          <div class="relative">
+          <div class="relative" v-if="playingState === 'answering'">
             <div class="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse"></div>
             <ButtonComponent
               icon="play"
               class="relative bg-gradient-primary w-20 h-20 rounded-full text-3xl text-white"
+              @click="playSnippet"
             />
           </div>
 
           <div
+            v-if="playingState === 'answering'"
             class="flex items-center w-full gap-4 text-primary-dark bg-white/60 p-3 rounded-xl backdrop-blur-sm"
           >
             <IconComponent icon="volume-high" class="text-gray-400" />
+            <!-- range sincronizada y con seek manual -->
             <input
               id="seek"
               type="range"
               min="0"
-              max="100"
-              v-model="songTimer"
+              max="5"
+              step="0.01"
+              :value="songTimer"
+              @input="onSeekChange($event.target.value)"
               class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
             />
-            <div class="font-mono text-sm font-bold w-12 text-right">{{ songTimer }}s</div>
+            <div class="font-mono text-sm font-bold w-12 text-right">
+              {{ Math.round(songTimer) }}s
+            </div>
           </div>
 
           <div class="text-center">
@@ -115,313 +127,387 @@
               ¿Qué canción es?
             </p>
             <p class="text-xl font-bold text-primary-dark" v-if="songTitle">{{ songTitle }}</p>
+            <p class="text-md text-primary-light" v-if="songTitle">{{ songSubtitle }}</p>
             <p class="text-xl font-bold text-gray-300 italic" v-else>Escuchando...</p>
           </div>
         </div>
 
+        <!-- OPCIONES -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <OptionComponent 
-            v-for="(opcion, index) in currentBlockQuestions[0]?.opciones" 
+          <OptionComponent
+            v-for="(opcion, index) in currentQuestion?.opciones"
             :key="index"
-            :letter="String.fromCharCode(65 + index)" 
+            :letter="String.fromCharCode(65 + index)"
             :text="opcion"
             :is-selected="selectedAnswer === opcion"
+            :is-disabled="playingState !== 'answering'"
+            :data-option="opcion"
             @click="selectedAnswer = opcion"
-            :is-disabled="playingState === 'result'"
           />
         </div>
 
+        <!-- BOTONES -->
         <ButtonComponent
           v-if="playingState === 'answering'"
           icon="paper-plane"
           label="Enviar respuesta"
           class="bg-white text-secondary rounded-2xl"
           :disabled="!selectedAnswer"
-          @click="submitBlockAnswers"
+          @click="submitAnswer"
+        />
+        <ButtonComponent
+          v-else-if="playingState === 'reviewing'"
+          icon="arrow-right"
+          label="Siguiente pregunta"
+          class="bg-primary text-white rounded-2xl"
+          @click="nextQuestion"
         />
       </div>
+    </div>
+  </section>
+
+  <!-- END SCREEN -->
+  <section
+    v-else-if="gameState === 'finished'"
+    class="bg-gradient-primary h-screen flex justify-center items-center p-4"
+  >
+    <div
+      class="max-w-xl w-full bg-white rounded-2xl shadow-2xl p-8 flex flex-col items-center gap-6"
+    >
+      <h1 class="text-3xl font-bold text-secondary text-center">¡Juego terminado!</h1>
+      <p class="text-xl font-medium text-secondary">Puntuación final: {{ playerPoints }}</p>
+      <ButtonComponent
+        label="Jugar de nuevo"
+        icon="refresh"
+        class="bg-primary text-white rounded-2xl w-full"
+        @click="resetGame"
+      />
     </div>
   </section>
 </template>
 
 <script setup>
+/*
+  Versión actualizada:
+  - Reproducción iniciada por el usuario (playSnippet)
+  - Rutas relativas resueltas desde src/assets (Vite / import.meta.url)
+  - Barra sincronizada con howler.seek() (songTimer va de 0 a 5)
+  - No se incluye ni inicializa el ecualizador
+*/
+
+import { ref, computed, onUnmounted } from 'vue'
+import { Howl } from 'howler'
+
 import ButtonComponent from '@/components/ButtonComponent.vue'
-import IconComponent from '@/components/IconComponent.vue'
-import IconListComponent from '@/components/IconListComponent.vue'
 import InputComponent from '@/components/InputComponent.vue'
-import OptionComponent from '@/components/OptionComponent.vue' 
+import IconListComponent from '@/components/IconListComponent.vue'
+import IconComponent from '@/components/IconComponent.vue'
+import OptionComponent from '@/components/OptionComponent.vue'
 
-import { ref, computed } from 'vue'
+import questions from '@/data/questions.json'
 
-// --- Estados Reactivos (Variables Globales Adaptadas)
+// --- Estados básicos
 const playerName = ref('')
-const gameState = ref('start')
-const playerPoints = ref(0)
-const songTimer = ref(0)
-const songTitle = ref('') // Se usará para mostrar el título en el resultado
-const totalSongs = ref(0)
-const playingState = ref('answering')
+const gameState = ref('start') // start | playing | finished
+const playingState = ref('answering') // answering | reviewing | finished (estado dentro de 'playing')
+
+const currentIndex = ref(0)
 const selectedAnswer = ref(null)
+const score = ref(0)
+const playerPoints = ref(0)
+const playableSongs = ref(10)
+const songTimer = ref(0) // segundos reproducidos del snippet (0..5)
+const songTitle = ref('') // se muestra cuando estamos en reviewing
+const songSubtitle = ref('') // se muestra cuando estamos en reviewing
 
-// --- Lógica del Quiz
-const correctAnswers = ref([])
-const questionsBlocks = ref([])
-const currentBlock = ref(0)
-const score = ref(0) 
-const currentBlockQuestions = ref([]) // Las preguntas del bloque actual
-const currentSongPath = ref(null) // Ruta del audio a reproducir
+// --- Reproducción / sync
+let howlerPlayer = null // instancia Howl actual
+let playbackTimeout = null // timeout para parar los 5s
+let progressInterval = null // interval que actualiza songTimer desde howler.seek()
+let snippetStartAt = 0 // posición de inicio en la canción (segundos)
+const snippetDuration = 5 // duracion fija del snippet (segundos)
+const songVolume = 0.8 // volumen por defecto
 
-// Para la barra de progreso
-const songIndex = computed(() => currentBlock.value * 2 + 1)
+// --- Computed helpers
+const currentQuestion = computed(() => questions.value?.[currentIndex.value] || null)
 const progressWidth = computed(() => {
-    if (totalSongs.value === 0) return '0%'
-    // Calcular el porcentaje basado en el número de preguntas *completadas*
-    // Una pregunta se completa al pasar al siguiente bloque (si el bloque tiene 2 preguntas)
-    const completedQuestions = currentBlock.value * 2
-    return `${(completedQuestions / totalSongs.value) * 100}%`
+  if (playableSongs.value === 0) return '0%'
+  return `${(currentIndex.value / playableSongs.value) * 100}%`
 })
 
-
-// --- Funciones de Lógica del Quiz
+// --- Utilidades sencillas
 function setRandomOrder(array) {
-    return [...array].sort(() => Math.random() - 0.5);
+  return [...array].sort(() => Math.random() - 0.5)
 }
 
-function extractAnswers(array) {
-    const answers = [];
-    const questionsWithoutAnswer = array.map(q => {
-        answers.push(q.respuesta);
-        // Excluir 'respuesta' para las preguntas a mostrar, pero mantener 'rutaCancion' para el audio
-        const { respuesta, ...resto } = q;
-        return resto;
-    });
-    return { questionsWithoutAnswer, answers };
-}
-
-async function fetchQuestions() {
+function onSeekChange(value) {
+  const v = Number(value)
+  // clamp 0..snippetDuration
+  const clamped = Math.max(0, Math.min(snippetDuration, v))
+  songTimer.value = clamped
+  if (howlerPlayer) {
     try {
-        // Asumiendo que las preguntas se cargarán localmente o desde una URL similar
-        // Si no tienes el archivo en /assets/questions.json, esta línea fallará.
-        // Podrías cargar el JSON directamente si lo incluyes como una importación.
-        // Para simplificar, asumimos que obtendrás el array JSON directamente.
-        const response = await fetch('/assets/questions.json');
-        if (!response.ok) throw new Error("Error en la respuesta: " + response.status);
-        return await response.json(); 
-    } catch (error) {
-        console.error("Hubo un problema con el fetch. Usando JSON de ejemplo:", error);
-        // Retorna el JSON de ejemplo si falla el fetch (o si lo pones directamente)
-        return [
-            { "pregunta": "¿Cuál es la canción de Djavan?", "opciones": ["Açaí", "Oceano", "Flor de Lis", "Samurai"], "respuesta": "Açaí", "artista": "Djavan", "rutaCancion": "songs/acai.mp3" },
-            // ... (rest of the JSON here if you want it hardcoded)
-        ];
+      howlerPlayer.seek(snippetStartAt + clamped)
+    } catch (e) {
+      console.warn('seek falló:', e)
     }
+  }
 }
 
-async function saveLog(score, username) {
-    const logs = JSON.parse(localStorage.getItem("quizLogs")) || [];
-    // Nota: JSON.parse(username) asume que el nombre se guardó como JSON.stringify("nombre")
-    const user = typeof username === 'string' && username.startsWith('"') ? JSON.parse(username) : username;
-
-    const newLog = {
-        user: user || 'Invitado', 
-        date: new Date().toISOString(),
-        correctAnswers: score
-    };
-    logs.push(newLog);
-    localStorage.setItem("quizLogs", JSON.stringify(logs));
-    console.log("Log guardado en localStorage:", newLog);
+function saveLog(finalScore) {
+  try {
+    const logs = JSON.parse(localStorage.getItem('quizLogs') || '[]')
+    logs.push({
+      user: playerName.value || 'Invitado',
+      date: new Date().toISOString(),
+      score: finalScore,
+    })
+    localStorage.setItem('quizLogs', JSON.stringify(logs))
+  } catch (e) {
+    console.warn('No se pudo guardar log:', e)
+  }
 }
 
-// --- Funciones Principales de Juego
-function resetGame() {
-    // Guardar el log antes de resetear
-    saveLog(score.value, sessionStorage.getItem("username"));
-
-    correctAnswers.value = [];
-    questionsBlocks.value = [];
-    currentBlock.value = 0;
-    score.value = 0;
-    totalSongs.value = 0;
-    currentBlockQuestions.value = [];
-    currentSongPath.value = null;
-    selectedAnswer.value = null;
-    songTitle.value = '';
-
-    sessionStorage.removeItem("username");
-    
-    // Regresar a la vista de inicio
-    gameState.value = 'start';
-    playingState.value = 'answering';
-}
-
-function renderNextBlock() {
-    // Si se completaron todos los bloques
-    if (currentBlock.value >= questionsBlocks.value.length) {
-        // Quiz completado, se podría pasar a un estado 'end'
-        // Por ahora, solo se reinicia o se muestra el resultado final
-        alert(`¡Has completado el quiz! Tu puntuación final es: ${score.value}`);
-        resetGame();
-        return;
+// --- Limpieza reprodución
+function clearPlayback() {
+  try {
+    if (playbackTimeout) {
+      clearTimeout(playbackTimeout)
+      playbackTimeout = null
     }
-
-    // Inicializar el temporizador de la canción (simulación)
-    songTimer.value = 0;
-    const interval = setInterval(() => {
-        if (songTimer.value < 5) { // Simular fragmento de 5 segundos
-            songTimer.value++;
-        } else {
-            clearInterval(interval);
-        }
-    }, 1000);
-
-    const block = questionsBlocks.value[currentBlock.value];
-    currentBlockQuestions.value = block;
-    // La primera pregunta del bloque tendrá el audio a reproducir
-    currentSongPath.value = block[0].rutaCancion;
-    songTitle.value = ''; // Ocultar el título de la canción al inicio
-
-    // Deseleccionar respuesta anterior
-    selectedAnswer.value = null;
+    if (progressInterval) {
+      clearInterval(progressInterval)
+      progressInterval = null
+    }
+    if (howlerPlayer) {
+      howlerPlayer.stop()
+      howlerPlayer.unload && howlerPlayer.unload()
+      howlerPlayer = null
+    }
+  } catch (e) {
+    console.warn('Error limpiando reproducción:', e)
+  } finally {
+    songTimer.value = 0
+    snippetStartAt = 0
+  }
 }
 
+onUnmounted(() => {
+  clearPlayback()
+})
+
+// --- Resolución de rutas relativas (src/assets/songs/...)
+function resolveSongPath(relPath) {
+  return `/${relPath}`
+}
+
+// --- Reproducción iniciada por el usuario
+/**
+ * playSnippet() debe ser llamado desde un botón por el usuario.
+ * Reproduce 5s desde una posición aleatoria (si la duración lo permite).
+ * No cambia el playingState automáticamente a reviewing; el usuario debe
+ * pulsar enviar (submitAnswer) para evaluar.
+ */
+function playSnippet() {
+  // Si ya hay reproducción activa, reiniciamos
+  clearPlayback()
+
+  const q = currentQuestion.value
+  if (!q || !q.rutaCancion) {
+    console.warn('No hay canción para reproducir.')
+    return
+  }
+
+  // Resolvemos la ruta para Vite (src/assets)
+  const srcPath = resolveSongPath(q.rutaCancion)
+
+  console.log(srcPath)
+
+  howlerPlayer = new Howl({
+    src: [srcPath],
+    html5: true,
+    volume: songVolume,
+    onloaderror: (id, err) => {
+      console.error('Error cargando canción:', err)
+    },
+    onplayerror: (id, err) => {
+      console.error('Error reproduciendo canción:', err)
+      // Intentamos recuperar reproduciendo de nuevo
+      howlerPlayer.once('unlock', () => howlerPlayer.play())
+    },
+  })
+  // Cuando cargue, calculamos posición aleatoria y reproducimos
+  howlerPlayer.once('load', () => {
+    const duration = howlerPlayer.duration() || 0
+    let startAt = 0
+    if (duration > snippetDuration) {
+      startAt = Math.random() * (duration - snippetDuration)
+    } else {
+      startAt = 0
+    }
+    snippetStartAt = startAt
+
+    // Intentamos seek antes de play (si falla, Howler puede ajustar)
+    howlerPlayer.seek(startAt)
+
+    // Reproducir
+    howlerPlayer.play()
+
+    // Configuramos un timeout que pare exactamente tras snippetDuration desde el inicio
+    playbackTimeout = setTimeout(() => {
+      // Paramos la reproducción al llegar a 5s
+      if (howlerPlayer) {
+        howlerPlayer.stop()
+      }
+      // limpieza pero NO forzamos reviewing; el usuario debe pulsar submitAnswer()
+      if (progressInterval) {
+        clearInterval(progressInterval)
+        progressInterval = null
+      }
+      playbackTimeout = null
+      // Aseguramos songTimer en 5
+      songTimer.value = snippetDuration
+    }, snippetDuration * 1000)
+
+    // Interval que sincroniza songTimer leyendo howler.seek()
+    progressInterval = setInterval(() => {
+      if (!howlerPlayer) return
+      let currentSeek = 0
+      try {
+        currentSeek = howlerPlayer.seek() || 0
+      } catch {
+        currentSeek = 0
+      }
+      const played = Math.max(0, currentSeek - snippetStartAt)
+      // clamp 0..snippetDuration
+      songTimer.value = Math.min(Math.max(0, played), snippetDuration)
+    }, 150) // 150ms para una barra fluida
+  })
+
+  // Si la carga falla, informamos y limpiamos
+  howlerPlayer.once('loaderror', (id, err) => {
+    console.error('load error', err)
+    clearPlayback()
+  })
+}
+
+// --- Lógica principal del juego (sin autoplay)
 async function startGame() {
-    if (!playerName.value) {
-        alert("Por favor, introduce tu nombre para empezar.");
-        return;
-    }
-    
-    sessionStorage.setItem("username", JSON.stringify(playerName.value));
-    
-    try {
-        const questions = await fetchQuestions();
-        const orderedQuestions = setRandomOrder(questions);
+  if (!playerName.value) {
+    alert('Introduce tu nombre para empezar')
+    return
+  }
 
-        const { questionsWithoutAnswer, answers } = extractAnswers(orderedQuestions);
-        correctAnswers.value = answers;
-        totalSongs.value = questionsWithoutAnswer.length;
-        currentBlock.value = 0;
-        score.value = 0;
-        questionsBlocks.value = [];
+  sessionStorage.setItem('username', playerName.value)
+  const loaded = questions
+  const shuffled = setRandomOrder(loaded)
 
-        // Dividir preguntas en bloques de 2
-        for (let i = 0; i < questionsWithoutAnswer.length; i += 2) {
-            questionsBlocks.value.push(questionsWithoutAnswer.slice(i, i + 2));
-        }
+  shuffled.slice(0, 10)
 
-        gameState.value = 'playing';
-        renderNextBlock();
+  // Nos aseguramos de que cada pregunta tenga lo que esperamos
+  questions.value = shuffled.map((q) => ({
+    titulo: q.titulo || q.songTitle || q.pregunta || '',
+    rutaCancion: q.rutaCancion || q.songPath || '',
+    opciones: q.opciones || q.options || [],
+    respuesta: q.respuesta || q.answer || '',
+    artista: q.artista || q.artist || '',
+  }))
 
-    } catch (err) {
-        console.error("Error empezando el juego:", err);
-    }
+  score.value = 0
+  playerPoints.value = 0
+  currentIndex.value = 0
+  playingState.value = 'answering'
+  songTitle.value = ''
+  songSubtitle.value = ''
+  gameState.value = 'playing'
+
+  // NO reproducimos automáticamente: el usuario debe pulsar playSnippet()
+  songTimer.value = 0
 }
 
-function checkBlockAnswers(userAnswers, blockIndex) {
-    const startIndex = blockIndex * 2;
-    let allCorrect = true;
+function submitAnswer() {
+  if (playingState.value !== 'answering') return
+  if (!selectedAnswer.value) return
 
-    userAnswers.forEach((answer, i) => {
-        const globalIndex = startIndex + i;
-        if (answer === correctAnswers.value[globalIndex]) {
-            score.value += 10; // Asumiendo 10 puntos por respuesta correcta
-        } else {
-            allCorrect = false;
-        }
-    });
+  // Paramos cualquier reproducción activa
+  clearPlayback()
 
-    return allCorrect;
+  // limpiamos clases previas (si las hubiera)
+  const allEls = document.querySelectorAll('[data-option]')
+  allEls.forEach((el) => {
+    el.classList.remove('bg-red-400', 'bg-green-400', 'bg-primary-light/10')
+  })
+
+  // DOM elements
+  const selectedSelector = `[data-option="${selectedAnswer.value}"]`
+  const selectedEl = document.querySelector(selectedSelector)
+
+  // elemento correcto (según la respuesta esperada)
+  const correctAnswer = currentQuestion.value?.respuesta
+  const correctAnswerArtist = currentQuestion.value?.artista
+  const correctSelector = `[data-option="${correctAnswer}"]`
+  const correctEl = document.querySelector(correctSelector)
+
+  console.log(currentQuestion)
+
+  // Comprobar respuesta y aplicar clases
+  const correct = selectedAnswer.value === correctAnswer
+  if (correct) {
+    score.value += 1
+    playerPoints.value += 10
+    if (selectedEl) selectedEl.classList.add('bg-green-400')
+  } else {
+    if (selectedEl) selectedEl.classList.add('bg-red-400')
+    if (correctEl) correctEl.classList.add('bg-green-400')
+  }
+
+  songTitle.value = correct ? `¡Correcto!` : `Incorrecto. Era: ${correctAnswer || '—'}`
+  songSubtitle.value = `"${correctAnswer}" - ${correctAnswerArtist}`
+  playingState.value = 'reviewing'
 }
 
-// Lógica de respuesta (sustituye al handler del formulario)
-function submitBlockAnswers() {
-    if (playingState.value !== 'answering') return;
+function nextQuestion() {
+  if (playingState.value !== 'reviewing') return
 
-    // Recoger las respuestas seleccionadas (simulando la lógica de tu formulario original)
-    // En tu diseño de Vue, la respuesta seleccionada está en 'selectedAnswer'
-    // Como tu bloque *actual* renderiza dos preguntas (la principal y la segunda)
-    // y tu OptionComponent es genérico, debemos adaptar cómo se recogen las 2 respuestas.
-    // **ASUMIMOS**: Solo se espera una respuesta para la *primera* pregunta del bloque, 
-    // y el OptionComponent actual está diseñado para esa primera pregunta.
-    // Si esperas 2 respuestas, necesitarías 2 `selectedAnswer` o un array.
+  if (currentIndex.value + 1 >= playableSongs.value) {
+    playingState.value = 'finished'
+    gameState.value = 'finished'
+    saveLog(score.value)
+    finishGame()
+    return
+  }
 
-    // A D A P T A C I Ó N   C R Í T I C A:
-    // La plantilla Vue solo muestra UNA sección de opciones, asumiendo una pregunta.
-    // Tu lógica de JS original esperaba 2 preguntas por bloque.
-    // Adaptaremos la lógica para trabajar con **una sola pregunta por bloque**
-    // o asumir que todas las opciones del `OptionComponent` se refieren a la 
-    // primera pregunta (`currentBlockQuestions.value[0]`).
-    // Basado en el template, la adaptación más fiel es trabajar con **una pregunta a la vez (bloque de 1)**.
-    
-    // Si mantuviéramos la lógica original (bloque de 2):
-    // const userAnswers = [selectedAnswer.value, /* Respuesta para la segunda pregunta, que falta en el template actual */];
-    
-    // V A R I A C I Ó N: Adaptamos a **Bloque de 1 Pregunta** para simplificar el template.
+  // Avanzamos
+  currentIndex.value++
+  selectedAnswer.value = null
+  songTitle.value = ''
+  playingState.value = 'answering'
+  songTimer.value = 0
 
-    // === LÓGICA CON BLOQUES DE 1 PREGUNTA ===
-    if (currentBlockQuestions.value.length === 0) return;
-    
-    const userAnswers = [selectedAnswer.value];
-    const startIndex = currentBlock.value; // Bloque de 1 pregunta
-    const correctAnswer = correctAnswers.value[startIndex];
-    let isCorrect = false;
-
-    if (selectedAnswer.value === correctAnswer) {
-        score.value += 10;
-        isCorrect = true;
-    }
-
-    playingState.value = 'result';
-    songTitle.value = isCorrect ? '¡Correcto!' : `Incorrecto. La respuesta era: ${correctAnswer}`;
-
-
-    // Simulación de bloqueo/desbloqueo visual (requeriría más cambios en OptionComponent)
-    // El OptionComponent de Vue se encarga de esto via props.
-    
-    // Esperar un momento para que el usuario vea el resultado antes de pasar al siguiente bloque
-    setTimeout(() => {
-        if (isCorrect) {
-            currentBlock.value++;
-            renderNextBlock();
-            playingState.value = 'answering';
-        } else {
-            alert("Bloque fallado, reiniciando el juego...");
-            resetGame();
-        }
-    }, 2000); // 2 segundos de pausa
-
+  // No reproducimos automáticamente; el usuario debe pulsar playSnippet()
 }
 
-// Ajuste para bloques de 1 pregunta. Mantenemos el nombre 'startGame' pero cambia la lógica de división.
-async function startGameSingleBlock() {
-    if (!playerName.value) {
-        alert("Por favor, introduce tu nombre para empezar.");
-        return;
-    }
-    
-    sessionStorage.setItem("username", playerName.value);
-    
-    try {
-        const questions = await fetchQuestions();
-        const orderedQuestions = setRandomOrder(questions);
-
-        const { questionsWithoutAnswer, answers } = extractAnswers(orderedQuestions);
-        correctAnswers.value = answers;
-        totalSongs.value = questionsWithoutAnswer.length;
-        currentBlock.value = 0;
-        score.value = 0;
-        questionsBlocks.value = questionsWithoutAnswer.map(q => [q]); // Bloques de 1 pregunta
-        
-        gameState.value = 'playing';
-        renderNextBlock();
-
-    } catch (err) {
-        console.error("Error empezando el juego:", err);
-    }
+function finishGame() {
+  playingState.value = 'finished'
+  gameState.value = 'finished'
+  saveLog(score.value)
+  clearPlayback()
 }
-// Aseguramos que la función llamada en @click="startGame" sea la correcta
-startGame.value = startGameSingleBlock;
 
-
+function resetGame() {
+  clearPlayback()
+  sessionStorage.removeItem('username')
+  playerName.value = ''
+  questions.value = []
+  currentIndex.value = 0
+  selectedAnswer.value = null
+  score.value = 0
+  playerPoints.value = 0
+  songTimer.value = 0
+  songTitle.value = ''
+  gameState.value = 'start'
+  playingState.value = 'answering'
+}
 </script>
 
 <style scoped>
@@ -436,4 +522,3 @@ input[type='range']::-webkit-slider-thumb {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 </style>
-
