@@ -1,7 +1,7 @@
 <template>
   <!-- START SCREEN -->
   <section
-    v-if="gameState === 'start'"
+    v-if="store.gameState === 'start'"
     class="bg-gradient-primary h-screen flex justify-center items-center p-4"
   >
     <div
@@ -15,7 +15,9 @@
         </div>
         <div class="text-center">
           <h3 class="text-2xl font-bold text-primary mb-2">¡Adivina la canción!</h3>
-          <p class="text-gray-500">Escucha fragmentos de 5 segundos y adivina el título correcto</p>
+          <p class="text-gray-500">
+            Escucha fragmentos de {{ store.snippetDuration }} segundos y adivina el título correcto
+          </p>
         </div>
       </div>
 
@@ -30,14 +32,14 @@
           placeholder="Introduce tu nombre"
           icon="user"
           label="Tu nombre"
-          v-model="playerName"
+          v-model="store.playerName"
         />
         <ButtonComponent
           icon="play"
           label="Comenzar el juego"
           class="bg-gradient-primary w-full py-4 text-lg shadow-lg hover:shadow-xl transition-shadow"
-          :disabled="!playerName"
-          @click="startGame"
+          :disabled="!store.playerName"
+          @click="handleStartGame"
         />
       </div>
     </div>
@@ -45,11 +47,11 @@
 
   <!-- GAME SCREEN -->
   <section
-    v-else-if="gameState === 'playing'"
-    class="bg-gradient-primary h-screen flex justify-center items-center p-4"
+    v-else-if="store.gameState === 'playing'"
+    class="bg-gradient-primary h-[130vh] flex justify-center items-center p-4"
   >
     <div
-      class="max-w-xl w-full bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[85vh] md:h-auto"
+      class="max-w-xl w-full bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[120vh] md:h-auto"
     >
       <!-- HEADER -->
       <div class="bg-gray-50 p-6 border-b border-gray-100 flex justify-between items-center">
@@ -61,7 +63,7 @@
           </div>
           <div class="flex flex-col">
             <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">JUGADOR</span>
-            <span class="font-bold text-primary-dark">{{ playerName || 'Invitado' }}</span>
+            <span class="font-bold text-primary-dark">{{ store.playerName || 'Invitado' }}</span>
           </div>
         </div>
 
@@ -69,7 +71,7 @@
           class="bg-white border border-gray-200 py-2 px-4 flex items-center gap-2 rounded-md shadow-sm"
         >
           <IconComponent icon="star" class="text-gray-400" />
-          <span class="font-bold text-xl text-primary">{{ playerPoints }}</span>
+          <span class="font-bold text-xl text-primary">{{ store.playerPoints }}</span>
           <span class="text-xs text-gray-400 font-bold uppercase">PTS</span>
         </div>
       </div>
@@ -78,7 +80,7 @@
         <!-- PROGRESO -->
         <div class="flex flex-col gap-2">
           <div class="flex justify-between text-sm font-medium text-gray-500">
-            <span>Pregunta {{ currentIndex + 1 }} de {{ playableSongs }}</span>
+            <span>Pregunta {{ store.currentIndex + 1 }} de {{ store.playableSongs }}</span>
           </div>
           <div class="w-full bg-gray-200 rounded-full h-2.5">
             <div
@@ -92,7 +94,7 @@
         <div
           class="bg-gradient-to-br from-primary/5 to-primary/10 rounded-2xl p-6 flex flex-col items-center justify-center gap-6 border border-primary/10"
         >
-          <div class="relative" v-if="playingState === 'answering'">
+          <div class="relative" v-if="store.playingState === 'answering'">
             <div class="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse"></div>
             <ButtonComponent
               icon="play"
@@ -102,7 +104,7 @@
           </div>
 
           <div
-            v-if="playingState === 'answering'"
+            v-if="store.playingState === 'answering'"
             class="flex items-center w-full gap-4 text-primary-dark bg-white/60 p-3 rounded-xl backdrop-blur-sm"
           >
             <IconComponent icon="volume-high" class="text-gray-400" />
@@ -110,15 +112,15 @@
             <input
               id="seek"
               type="range"
-              min="0"
-              max="5"
+              :min="0"
+              :max="store.snippetDuration"
               step="0.01"
-              :value="songTimer"
+              :value="store.songTimer"
               @input="onSeekChange($event.target.value)"
               class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
             />
             <div class="font-mono text-sm font-bold w-12 text-right">
-              {{ Math.round(songTimer) }}s
+              {{ Math.round(store.songTimer) }}s
             </div>
           </div>
 
@@ -126,8 +128,12 @@
             <p class="text-sm font-bold text-primary/60 uppercase tracking-widest mb-1">
               ¿Qué canción es?
             </p>
-            <p class="text-xl font-bold text-primary-dark" v-if="songTitle">{{ songTitle }}</p>
-            <p class="text-md text-primary-light" v-if="songTitle">{{ songSubtitle }}</p>
+            <p class="text-xl font-bold text-primary-dark" v-if="store.songTitle">
+              {{ store.songTitle }}
+            </p>
+            <p class="text-md text-primary-light" v-if="store.songTitle">
+              {{ store.songSubtitle }}
+            </p>
             <p class="text-xl font-bold text-gray-300 italic" v-else>Escuchando...</p>
           </div>
         </div>
@@ -135,32 +141,39 @@
         <!-- OPCIONES -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <OptionComponent
-            v-for="(opcion, index) in currentQuestion?.opciones"
+            v-for="(opcion, index) in currentQuestion?.opciones || []"
             :key="index"
             :letter="String.fromCharCode(65 + index)"
             :text="opcion"
-            :is-selected="selectedAnswer === opcion"
-            :is-disabled="playingState !== 'answering'"
-            :data-option="opcion"
-            @click="selectedAnswer = opcion"
+            :is-selected="store.selectedAnswer === opcion"
+            :is-disabled="store.playingState !== 'answering'"
+            :is-correct="
+              store.playingState === 'reviewing' && opcion === currentQuestion?.respuesta
+            "
+            :is-wrong="
+              store.playingState === 'reviewing' &&
+              store.selectedAnswer === opcion &&
+              opcion !== currentQuestion?.respuesta
+            "
+            @select="(val) => (store.selectedAnswer = val)"
           />
         </div>
 
         <!-- BOTONES -->
         <ButtonComponent
-          v-if="playingState === 'answering'"
+          v-if="store.playingState === 'answering'"
           icon="paper-plane"
           label="Enviar respuesta"
           class="bg-white text-secondary rounded-2xl"
-          :disabled="!selectedAnswer"
-          @click="submitAnswer"
+          :disabled="!store.selectedAnswer"
+          @click="handleSubmit"
         />
         <ButtonComponent
-          v-else-if="playingState === 'reviewing'"
+          v-else-if="store.playingState === 'reviewing'"
           icon="arrow-right"
           label="Siguiente pregunta"
           class="bg-primary text-white rounded-2xl"
-          @click="nextQuestion"
+          @click="handleNext"
         />
       </div>
     </div>
@@ -168,35 +181,28 @@
 
   <!-- END SCREEN -->
   <section
-    v-else-if="gameState === 'finished'"
+    v-else-if="store.gameState === 'finished'"
     class="bg-gradient-primary h-screen flex justify-center items-center p-4"
   >
     <div
       class="max-w-xl w-full bg-white rounded-2xl shadow-2xl p-8 flex flex-col items-center gap-6"
     >
       <h1 class="text-3xl font-bold text-secondary text-center">¡Juego terminado!</h1>
-      <p class="text-xl font-medium text-secondary">Puntuación final: {{ playerPoints }}</p>
+      <p class="text-xl font-medium text-secondary">Puntuación final: {{ store.playerPoints }}</p>
       <ButtonComponent
         label="Jugar de nuevo"
         icon="refresh"
         class="bg-primary text-white rounded-2xl w-full"
-        @click="resetGame"
+        @click="handleReset"
       />
     </div>
   </section>
 </template>
 
 <script setup>
-/*
-  Versión actualizada:
-  - Reproducción iniciada por el usuario (playSnippet)
-  - Rutas relativas resueltas desde src/assets (Vite / import.meta.url)
-  - Barra sincronizada con howler.seek() (songTimer va de 0 a 5)
-  - No se incluye ni inicializa el ecualizador
-*/
-
-import { ref, computed, onUnmounted } from 'vue'
+import { computed, onUnmounted } from 'vue'
 import { Howl } from 'howler'
+import { useGameStore } from '@/stores/game'
 
 import ButtonComponent from '@/components/ButtonComponent.vue'
 import InputComponent from '@/components/InputComponent.vue'
@@ -204,71 +210,27 @@ import IconListComponent from '@/components/IconListComponent.vue'
 import IconComponent from '@/components/IconComponent.vue'
 import OptionComponent from '@/components/OptionComponent.vue'
 
-import questions from '@/data/questions.json'
+const store = useGameStore()
 
-// --- Estados básicos
-const playerName = ref('')
-const gameState = ref('start') // start | playing | finished
-const playingState = ref('answering') // answering | reviewing | finished (estado dentro de 'playing')
+let howlerPlayer = null
+let playbackTimeout = null
+let progressInterval = null
+let snippetStartAt = 0
+const songVolume = 0.8
 
-const currentIndex = ref(0)
-const selectedAnswer = ref(null)
-const score = ref(0)
-const playerPoints = ref(0)
-const playableSongs = ref(10)
-const songTimer = ref(0) // segundos reproducidos del snippet (0..5)
-const songTitle = ref('') // se muestra cuando estamos en reviewing
-const songSubtitle = ref('') // se muestra cuando estamos en reviewing
-
-// --- Reproducción / sync
-let howlerPlayer = null // instancia Howl actual
-let playbackTimeout = null // timeout para parar los 5s
-let progressInterval = null // interval que actualiza songTimer desde howler.seek()
-let snippetStartAt = 0 // posición de inicio en la canción (segundos)
-const snippetDuration = 5 // duracion fija del snippet (segundos)
-const songVolume = 0.8 // volumen por defecto
-
-// --- Computed helpers
-const currentQuestion = computed(() => questions.value?.[currentIndex.value] || null)
-const progressWidth = computed(() => {
-  if (playableSongs.value === 0) return '0%'
-  return `${(currentIndex.value / playableSongs.value) * 100}%`
+// computed helpers
+const currentQuestion = computed(() => {
+  if (store.currentQuestion) return store.currentQuestion
+  return store.questions?.[store.currentIndex] || null
 })
 
-// --- Utilidades sencillas
-function setRandomOrder(array) {
-  return [...array].sort(() => Math.random() - 0.5)
-}
+const progressWidth = computed(() => {
+  if (!store.playableSongs) return '0%'
+  const pct = (store.currentIndex / store.playableSongs) * 100
+  return `${Math.max(0, Math.min(100, pct))}%`
+})
 
-function onSeekChange(value) {
-  const v = Number(value)
-  // clamp 0..snippetDuration
-  const clamped = Math.max(0, Math.min(snippetDuration, v))
-  songTimer.value = clamped
-  if (howlerPlayer) {
-    try {
-      howlerPlayer.seek(snippetStartAt + clamped)
-    } catch (e) {
-      console.warn('seek falló:', e)
-    }
-  }
-}
-
-function saveLog(finalScore) {
-  try {
-    const logs = JSON.parse(localStorage.getItem('quizLogs') || '[]')
-    logs.push({
-      user: playerName.value || 'Invitado',
-      date: new Date().toISOString(),
-      score: finalScore,
-    })
-    localStorage.setItem('quizLogs', JSON.stringify(logs))
-  } catch (e) {
-    console.warn('No se pudo guardar log:', e)
-  }
-}
-
-// --- Limpieza reprodución
+// cleanup
 function clearPlayback() {
   try {
     if (playbackTimeout) {
@@ -287,89 +249,65 @@ function clearPlayback() {
   } catch (e) {
     console.warn('Error limpiando reproducción:', e)
   } finally {
-    songTimer.value = 0
+    store.songTimer = 0
     snippetStartAt = 0
   }
 }
 
-onUnmounted(() => {
-  clearPlayback()
-})
+onUnmounted(() => clearPlayback())
 
-// --- Resolución de rutas relativas (src/assets/songs/...)
-function resolveSongPath(relPath) {
-  return `/${relPath}`
-}
+function resolveSongPath(relPath) { return `${relPath}` }
 
-// --- Reproducción iniciada por el usuario
-/**
- * playSnippet() debe ser llamado desde un botón por el usuario.
- * Reproduce 5s desde una posición aleatoria (si la duración lo permite).
- * No cambia el playingState automáticamente a reviewing; el usuario debe
- * pulsar enviar (submitAnswer) para evaluar.
- */
+// playback logic
 function playSnippet() {
-  // Si ya hay reproducción activa, reiniciamos
   clearPlayback()
-
   const q = currentQuestion.value
   if (!q || !q.rutaCancion) {
     console.warn('No hay canción para reproducir.')
     return
   }
 
-  // Resolvemos la ruta para Vite (src/assets)
   const srcPath = resolveSongPath(q.rutaCancion)
-
-  console.log(srcPath)
-
   howlerPlayer = new Howl({
     src: [srcPath],
     html5: true,
     volume: songVolume,
-    onloaderror: (id, err) => {
-      console.error('Error cargando canción:', err)
-    },
+    onloaderror: (id, err) => console.error('Error cargando canción:', err),
     onplayerror: (id, err) => {
       console.error('Error reproduciendo canción:', err)
-      // Intentamos recuperar reproduciendo de nuevo
       howlerPlayer.once('unlock', () => howlerPlayer.play())
     },
   })
-  // Cuando cargue, calculamos posición aleatoria y reproducimos
+
   howlerPlayer.once('load', () => {
     const duration = howlerPlayer.duration() || 0
-    let startAt = 0
-    if (duration > snippetDuration) {
-      startAt = Math.random() * (duration - snippetDuration)
+    // Usar fragmento guardado o generar uno nuevo
+    if (duration > store.snippetDuration) {
+      if (!(q.rutaCancion in store.songSnippetStart)) {
+        store.songSnippetStart[q.rutaCancion] = Math.random() * (duration - store.snippetDuration)
+      }
+      snippetStartAt = store.songSnippetStart[q.rutaCancion]
     } else {
-      startAt = 0
+      snippetStartAt = 0
     }
-    snippetStartAt = startAt
 
-    // Intentamos seek antes de play (si falla, Howler puede ajustar)
-    howlerPlayer.seek(startAt)
-
-    // Reproducir
+    try {
+      howlerPlayer.seek(snippetStartAt)
+    } catch (e) {
+      console.error(e)
+    }
     howlerPlayer.play()
 
-    // Configuramos un timeout que pare exactamente tras snippetDuration desde el inicio
     playbackTimeout = setTimeout(() => {
-      // Paramos la reproducción al llegar a 5s
-      if (howlerPlayer) {
-        howlerPlayer.stop()
-      }
-      // limpieza pero NO forzamos reviewing; el usuario debe pulsar submitAnswer()
+      if (howlerPlayer) howlerPlayer.stop()
       if (progressInterval) {
         clearInterval(progressInterval)
         progressInterval = null
       }
       playbackTimeout = null
-      // Aseguramos songTimer en 5
-      songTimer.value = snippetDuration
-    }, snippetDuration * 1000)
+      store.songTimer = store.snippetDuration
+    }, store.snippetDuration * 1000)
 
-    // Interval que sincroniza songTimer leyendo howler.seek()
     progressInterval = setInterval(() => {
       if (!howlerPlayer) return
       let currentSeek = 0
@@ -379,134 +317,147 @@ function playSnippet() {
         currentSeek = 0
       }
       const played = Math.max(0, currentSeek - snippetStartAt)
-      // clamp 0..snippetDuration
-      songTimer.value = Math.min(Math.max(0, played), snippetDuration)
-    }, 150) // 150ms para una barra fluida
+      store.songTimer = Math.min(Math.max(0, played), store.snippetDuration)
+    }, 150)
   })
 
-  // Si la carga falla, informamos y limpiamos
   howlerPlayer.once('loaderror', (id, err) => {
     console.error('load error', err)
     clearPlayback()
   })
 }
 
-// --- Lógica principal del juego (sin autoplay)
-async function startGame() {
-  if (!playerName.value) {
+
+function onSeekChange(value) {
+  const v = Number(value)
+  const clamped = Math.max(0, Math.min(store.snippetDuration, v))
+  store.songTimer = clamped
+  if (howlerPlayer) {
+    try {
+      howlerPlayer.seek(snippetStartAt + clamped)
+    } catch (e) {
+      console.warn('seek falló:', e)
+    }
+  }
+}
+
+// Handlers que llaman a acciones del store (si las tienes) o usan la lógica del store
+function handleStartGame() {
+  // session storage con username
+  if (!store.playerName) {
     alert('Introduce tu nombre para empezar')
     return
   }
-
-  sessionStorage.setItem('username', playerName.value)
-  const loaded = questions
-  const shuffled = setRandomOrder(loaded)
-
-  shuffled.slice(0, 10)
-
-  // Nos aseguramos de que cada pregunta tenga lo que esperamos
-  questions.value = shuffled.map((q) => ({
-    titulo: q.titulo || q.songTitle || q.pregunta || '',
-    rutaCancion: q.rutaCancion || q.songPath || '',
-    opciones: q.opciones || q.options || [],
-    respuesta: q.respuesta || q.answer || '',
-    artista: q.artista || q.artist || '',
-  }))
-
-  score.value = 0
-  playerPoints.value = 0
-  currentIndex.value = 0
-  playingState.value = 'answering'
-  songTitle.value = ''
-  songSubtitle.value = ''
-  gameState.value = 'playing'
-
-  // NO reproducimos automáticamente: el usuario debe pulsar playSnippet()
-  songTimer.value = 0
+  sessionStorage.setItem('username', store.playerName)
+  // si el store tiene startGame como acción -> usa la acción
+  if (typeof store.startGame === 'function') {
+    store.startGame()
+  } else {
+    // fallback: inicializar preguntas localmente si store no tiene acción
+    store.questions = Array.isArray(store.questions) ? store.questions : [] // no tocar si no existe
+    // intenta barajar y tomar primeras n
+    if (Array.isArray(store.questions) && store.questions.length > 0) {
+      store.questions = store.questions
+        .sort(() => Math.random() - 0.5)
+        .slice(0, store.playableSongs)
+    }
+    store.score = 0
+    store.playerPoints = 0
+    store.currentIndex = 0
+    store.playingState = 'answering'
+    store.songTimer = 0
+    store.songTitle = ''
+    store.songSubtitle = ''
+    store.gameState = 'playing'
+  }
+  // opcional: navegar a ruta /play si hace falta
+  // router.push({ name: 'game' })
 }
 
-function submitAnswer() {
-  if (playingState.value !== 'answering') return
-  if (!selectedAnswer.value) return
+function handleSubmit() {
+  if (store.playingState !== 'answering') return
+  if (!store.selectedAnswer) return
 
-  // Paramos cualquier reproducción activa
+  // stop audio
   clearPlayback()
 
-  // limpiamos clases previas (si las hubiera)
-  const allEls = document.querySelectorAll('[data-option]')
-  allEls.forEach((el) => {
-    el.classList.remove('bg-red-400', 'bg-green-400', 'bg-primary-light/10')
-  })
-
-  // DOM elements
-  const selectedSelector = `[data-option="${selectedAnswer.value}"]`
-  const selectedEl = document.querySelector(selectedSelector)
-
-  // elemento correcto (según la respuesta esperada)
-  const correctAnswer = currentQuestion.value?.respuesta
-  const correctAnswerArtist = currentQuestion.value?.artista
-  const correctSelector = `[data-option="${correctAnswer}"]`
-  const correctEl = document.querySelector(correctSelector)
-
-  console.log(currentQuestion)
-
-  // Comprobar respuesta y aplicar clases
-  const correct = selectedAnswer.value === correctAnswer
-  if (correct) {
-    score.value += 1
-    playerPoints.value += 10
-    if (selectedEl) selectedEl.classList.add('bg-green-400')
+  // si existe submitAnswer en store, úsalo (centraliza la lógica)
+  if (typeof store.submitAnswer === 'function') {
+    store.submitAnswer()
   } else {
-    if (selectedEl) selectedEl.classList.add('bg-red-400')
-    if (correctEl) correctEl.classList.add('bg-green-400')
+    // fallback local
+    const correctAnswer = currentQuestion.value?.respuesta
+    const correct = store.selectedAnswer === correctAnswer
+    if (correct) {
+      store.score += 1
+      store.playerPoints += 10
+    }
+    store.songTitle = correct ? `¡Correcto!` : `Incorrecto. Era: ${correctAnswer || '—'}`
+    store.songSubtitle = `${correctAnswer || ''} — ${currentQuestion.value?.artista || ''}`
+    store.playingState = 'reviewing'
   }
-
-  songTitle.value = correct ? `¡Correcto!` : `Incorrecto. Era: ${correctAnswer || '—'}`
-  songSubtitle.value = `"${correctAnswer}" - ${correctAnswerArtist}`
-  playingState.value = 'reviewing'
 }
 
-function nextQuestion() {
-  if (playingState.value !== 'reviewing') return
-
-  if (currentIndex.value + 1 >= playableSongs.value) {
-    playingState.value = 'finished'
-    gameState.value = 'finished'
-    saveLog(score.value)
-    finishGame()
-    return
+function handleNext() {
+  if (typeof store.nextQuestion === 'function') {
+    store.nextQuestion()
+  } else {
+    // fallback local next
+    if (store.currentIndex + 1 >= store.playableSongs) {
+      store.playingState = 'finished'
+      store.gameState = 'finished'
+      saveLog(store.score)
+      finishGame()
+      return
+    }
+    store.currentIndex++
+    store.selectedAnswer = null
+    store.songTitle = ''
+    store.playingState = 'answering'
+    store.songTimer = 0
   }
-
-  // Avanzamos
-  currentIndex.value++
-  selectedAnswer.value = null
-  songTitle.value = ''
-  playingState.value = 'answering'
-  songTimer.value = 0
-
-  // No reproducimos automáticamente; el usuario debe pulsar playSnippet()
 }
 
 function finishGame() {
-  playingState.value = 'finished'
-  gameState.value = 'finished'
-  saveLog(score.value)
+  store.playingState = 'finished'
+  store.gameState = 'finished'
+  saveLog(store.score)
   clearPlayback()
+  // router.push({ name: 'results' }) // opcional
 }
 
-function resetGame() {
+function handleReset() {
   clearPlayback()
   sessionStorage.removeItem('username')
-  playerName.value = ''
-  questions.value = []
-  currentIndex.value = 0
-  selectedAnswer.value = null
-  score.value = 0
-  playerPoints.value = 0
-  songTimer.value = 0
-  songTitle.value = ''
-  gameState.value = 'start'
-  playingState.value = 'answering'
+  if (typeof store.resetGame === 'function') {
+    store.resetGame()
+  } else {
+    store.playerName = ''
+    store.questions = []
+    store.currentIndex = 0
+    store.selectedAnswer = null
+    store.score = 0
+    store.playerPoints = 0
+    store.songTimer = 0
+    store.songTitle = ''
+    store.gameState = 'start'
+    store.playingState = 'answering'
+  }
+  // router.push({ name: 'start' })
+}
+
+function saveLog(finalScore) {
+  try {
+    const logs = JSON.parse(localStorage.getItem('quizLogs') || '[]')
+    logs.push({
+      user: store.playerName || 'Invitado',
+      date: new Date().toISOString(),
+      score: finalScore,
+    })
+    localStorage.setItem('quizLogs', JSON.stringify(logs))
+  } catch (e) {
+    console.warn('No se pudo guardar log:', e)
+  }
 }
 </script>
 
