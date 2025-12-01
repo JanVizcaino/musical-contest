@@ -226,10 +226,12 @@
 </template>
 
 <script setup>
-import { computed, ref, onUnmounted } from 'vue'
-import { Howl } from 'howler'
-import { useGameStore } from '@/stores/game'
+/* Imports: cosas que uso desde Vue, howler y mis stores/componentes */
+import { computed, ref, onUnmounted } from 'vue' // uso reactive/computed y un hook para limpiar al desmontar
+import { Howl } from 'howler' // librería para reproducir audio
+import { useGameStore } from '@/stores/game' // mi store del juego
 
+/* Componentes reutilizables que uso en la vista */
 import ButtonComponent from '@/components/ButtonComponent.vue'
 import InputComponent from '@/components/InputComponent.vue'
 import IconListComponent from '@/components/IconListComponent.vue'
@@ -237,43 +239,50 @@ import IconComponent from '@/components/IconComponent.vue'
 import OptionComponent from '@/components/OptionComponent.vue'
 import StatComponent from '@/components/StatComponent.vue'
 
-
+/* Store del ranking para guardar puntuaciones */
 import { useRankingStore } from '@/stores/ranking'
 
+/* Instancio los stores (los uso como singletons reactivamente) */
 const rankingStore = useRankingStore()
 const gameStore = useGameStore()
 
-let howlerPlayer = null
-let playbackTimeout = null
-let progressInterval = null
-let snippetStartAt = 0
-const songVolume = 0.8
+/* Variables para manejar la reproducción y temporizadores */
+let howlerPlayer = null // instancia Howl activa
+let playbackTimeout = null // timeout que para el snippet
+let progressInterval = null // interval que actualiza progreso
+let snippetStartAt = 0 // desde donde empiezo el snippet dentro de la canción
+const songVolume = 0.8 // volumen por defecto
 
-const responseTimes = ref([]) 
-const questionStartAt = ref(null) 
+/* Guardamos tiempos de respuesta para estadísticas */
+const responseTimes = ref([]) // array de segundos por cada respuesta
+const questionStartAt = ref(null) // timestamp de inicio de la pregunta (ms)
 
+/* computed: pregunta actual (la saco del store y barajo opciones) */
 const currentQuestion = computed(() => {
   const question = gameStore.currentQuestion || gameStore.questions?.[gameStore.currentIndex] || null
   if (!question) return null
 
   return {
     ...question,
-    opciones: gameStore.shuffle(question.opciones)
+    opciones: gameStore.shuffle(question.opciones) // devuelvo opciones barajadas cada vez
   }
 })
 
+/* ancho del progreso (porcentaje) basado en índice / total */
 const progressWidth = computed(() => {
   if (!gameStore.playableSongs) return '0%'
   const pct = (gameStore.currentIndex / gameStore.playableSongs) * 100
-  return `${Math.max(0, Math.min(100, pct))}%`
+  return `${Math.max(0, Math.min(100, pct))}%` // lo aseguro entre 0 y 100
 })
 
+/* más helpers reactivos para stats */
 const totalQuestions = computed(() => gameStore.playableSongs || (gameStore.questions?.length || 0))
 const correctAnswers = computed(() => gameStore.score || 0)
 const accuracyPct = computed(() => totalQuestions.value ? Math.round((correctAnswers.value / totalQuestions.value) * 100) : 0)
 const totalResponseTime = computed(() => responseTimes.value.reduce((a, b) => a + b, 0))
 const avgResponseTime = computed(() => responseTimes.value.length ? (totalResponseTime.value / responseTimes.value.length) : 0)
 
+/* Frases graciosas según rendimiento (solo texto) */
 const funnyPhrase = computed(() => {
   const c = correctAnswers.value
   const t = totalQuestions.value || 1
@@ -285,6 +294,7 @@ const funnyPhrase = computed(() => {
   return '¿Seguro que no te has distraido pensando en tu crush? '
 })
 
+/* formatea segundos a "Xm Ys" o "Ys" */
 function formatTime(seconds) {
   if (!seconds) return '0s'
   const s = Math.round(seconds)
@@ -293,6 +303,7 @@ function formatTime(seconds) {
   return mm > 0 ? `${mm}m ${ss}s` : `${ss}s`
 }
 
+/* Limpia playback: para timeouts/intervals y libera Howler */
 function clearPlayback() {
   try {
     if (playbackTimeout) {
@@ -304,27 +315,32 @@ function clearPlayback() {
       progressInterval = null
     }
     if (howlerPlayer) {
-      howlerPlayer.stop()
-      howlerPlayer.unload && howlerPlayer.unload()
+      howlerPlayer.stop() // paro reproducción
+      howlerPlayer.unload && howlerPlayer.unload() // libero recursos si existe unload
       howlerPlayer = null
     }
   } catch (e) {
-    console.warn('Error limpiando reproducción:', e)
+    console.warn('Error limpiando reproducción:', e) // no bloqueo la app si algo falla
   } finally {
-    gameStore.songTimer = 0
-    snippetStartAt = 0
+    gameStore.songTimer = 0 // reseteo contador visible
+    snippetStartAt = 0 // reseteo punto de inicio
   }
 }
 
+/* cuando el componente se desmonta, me aseguro de limpiar todo */
 onUnmounted(() => clearPlayback())
 
+/* función trivial para resolver path (por si en el futuro quiero prefix) */
 function resolveSongPath(relPath) { return `${relPath}` }
 
+/* Reproduce el snippet de la canción actual:
+   - limpia estados previos
+   - crea Howl y gestiona load/play/seek/timeout/progreso */
 function playSnippet() {
-  clearPlayback()
+  clearPlayback() // empiezo limpio
   const q = currentQuestion.value
   
-  questionStartAt.value = Date.now()
+  questionStartAt.value = Date.now() // marco inicio de la pregunta (para tiempo respuesta)
   
   if (!q || !q.rutaCancion) {
     console.warn('No hay canción para reproducir.')
@@ -334,33 +350,36 @@ function playSnippet() {
   const srcPath = resolveSongPath(q.rutaCancion)
   howlerPlayer = new Howl({
     src: [srcPath],
-    html5: true,
+    html5: true, // uso audio html5 para ficheros grandes/streaming
     volume: songVolume,
     onloaderror: (id, err) => console.error('Error cargando canción:', err),
     onplayerror: (id, err) => {
       console.error('Error reproduciendo canción:', err)
-      howlerPlayer.once('unlock', () => howlerPlayer.play())
+      howlerPlayer.once('unlock', () => howlerPlayer.play()) // intento reanudar si falla por bloqueo de autoplay
     },
   })
 
+  /* Cuando Howler carga el audio, calculo desde dónde sacar el snippet */
   howlerPlayer.once('load', () => {
     const duration = howlerPlayer.duration() || 0
     if (duration > gameStore.snippetDuration) {
+      // Si no tengo start guardado para esa ruta, lo genero aleatorio dentro del rango posible
       if (!(q.rutaCancion in gameStore.songSnippetStart)) {
         gameStore.songSnippetStart[q.rutaCancion] = Math.random() * (duration - gameStore.snippetDuration)
       }
       snippetStartAt = gameStore.songSnippetStart[q.rutaCancion]
     } else {
-      snippetStartAt = 0
+      snippetStartAt = 0 // canción corta -> empiezo desde 0
     }
 
     try {
-      howlerPlayer.seek(snippetStartAt)
+      howlerPlayer.seek(snippetStartAt) // coloco puntero donde toca
     } catch (e) {
       console.error(e)
     }
-    howlerPlayer.play()
+    howlerPlayer.play() // reproduzco
 
+    /* Timeout que para la reproducción cuando acaba el snippet */
     playbackTimeout = setTimeout(() => {
       if (howlerPlayer) howlerPlayer.stop()
       if (progressInterval) {
@@ -368,9 +387,10 @@ function playSnippet() {
         progressInterval = null
       }
       playbackTimeout = null
-      gameStore.songTimer = gameStore.snippetDuration
+      gameStore.songTimer = gameStore.snippetDuration // marco como completado
     }, gameStore.snippetDuration * 1000)
 
+    /* Intervalo que actualiza el progreso visual del snippet */
     progressInterval = setInterval(() => {
       if (!howlerPlayer) return
       let currentSeek = 0
@@ -381,15 +401,18 @@ function playSnippet() {
       }
       const played = Math.max(0, currentSeek - snippetStartAt)
       gameStore.songTimer = Math.min(Math.max(0, played), gameStore.snippetDuration)
-    }, 150)
+    }, 150) // actualizo cada 150ms
   })
 
+  /* si hay error al cargar, lo limpio todo */
   howlerPlayer.once('loaderror', (id, err) => {
     console.error('load error', err)
     clearPlayback()
   })
 }
 
+/* handler para cuando el usuario mueve el slider de seek:
+   clampa el valor y busca dentro del snippet */
 function onSeekChange(value) {
   const v = Number(value)
   const clamped = Math.max(0, Math.min(gameStore.snippetDuration, v))
@@ -403,19 +426,55 @@ function onSeekChange(value) {
   }
 }
 
+/* ----------------- Timeouts para submit automático ----------------- */
+/* Variable para guardar id del timeout de submit */
+let submitTimeoutId = null
+const QUESTION_TIMEOUT_MS = 10_000 // 10 segundos por pregunta
+
+/* borra el timeout de submit si existe */
+function clearSubmitTimeout() {
+  if (submitTimeoutId) {
+    clearTimeout(submitTimeoutId)
+    submitTimeoutId = null
+  }
+}
+
+/* inicia el countdown que forzará handleSubmit con timeout=true */
+function startQuestionCountdown(ms = QUESTION_TIMEOUT_MS) {
+  // Reinicio cualquier timer anterior
+  clearSubmitTimeout()
+
+  // Marco inicio de la pregunta (para medir tiempo de respuesta)
+  questionStartAt.value = Date.now()
+
+  // Arranco timeout que llamará handleSubmit({ timeout: true }) pasado ms
+  submitTimeoutId = setTimeout(() => {
+    submitTimeoutId = null
+    // Llamo a handleSubmit con try/catch por seguridad
+    try {
+      handleSubmit({ timeout: true })
+    } catch (e) {
+      console.error('Error al ejecutar submit por timeout:', e)
+    }
+  }, ms)
+}
+/* ------------------------------------------------------------------ */
+
+/* handleStartGame: valida nombre, prepara el juego y arranca la 1ª pregunta */
 function handleStartGame() {
   if (!gameStore.playerName) {
-    alert('Introduce tu nombre para empezar')
+    alert('Introduce tu nombre para empezar') // feedback sencillo si falta nombre
     return
   }
-  sessionStorage.setItem('username', gameStore.playerName)
+  sessionStorage.setItem('username', gameStore.playerName) // guardo nombre en sesión
   
-  responseTimes.value = []
+  responseTimes.value = [] // limpio tiempos previos
   questionStartAt.value = null
 
   if (typeof gameStore.startGame === 'function') {
-    gameStore.startGame()
+    gameStore.startGame() // si el store tiene startGame, lo uso
   } else {
+    // si no, inicializo manualmente las preguntas/estado
     gameStore.questions = Array.isArray(gameStore.questions) ? gameStore.questions : []
     if (Array.isArray(gameStore.questions) && gameStore.questions.length > 0) {
       gameStore.questions = gameStore.questions
@@ -431,39 +490,73 @@ function handleStartGame() {
     gameStore.songSubtitle = ''
     gameStore.gameState = 'playing'
   }
+
+  // Empezar la primera pregunta: arranco countdown y reproduzco snippet
+  startQuestionCountdown()
+  playSnippet()
 }
 
-function handleSubmit() {
+/* handleSubmit: gestiona envío/respuesta:
+   - si timeout=true fuerza envío sin respuesta seleccionada
+   - calcula tiempo de respuesta y actualiza puntuaciones */
+function handleSubmit({ timeout = false } = {}) {
+  // si no estamos en estado "answering" no hacemos nada
   if (gameStore.playingState !== 'answering') return
-  if (!gameStore.selectedAnswer) return
 
-  const now = Date.now()
-  const respSec = questionStartAt.value ? ((now - questionStartAt.value) / 1000) : 0
-  responseTimes.value.push(Number(respSec.toFixed(3)))
+  // si NO es timeout y no hay respuesta seleccionada, salgo (usuario no ha elegido)
+  if (!timeout && !gameStore.selectedAnswer) return
 
-  // Reset para la siguiente pregunta
-  questionStartAt.value = null
+  try {
+    // calculo tiempo de respuesta y lo guardo en responseTimes
+    const now = Date.now()
+    const respSec = questionStartAt.value ? ((now - questionStartAt.value) / 1000) : 0
+    responseTimes.value.push(Number(respSec.toFixed(3)))
+  } catch (e) {
+    console.warn('Error calculando tiempo de respuesta:', e)
+  } finally {
+    // reseteo el timestamp de inicio de la pregunta
+    questionStartAt.value = null
+  }
 
+  // limpio timeout de submit y cualquier reproducción activa
+  clearSubmitTimeout()
   clearPlayback()
 
+  // obtengo la respuesta correcta (si existe)
   const correctAnswer = currentQuestion.value?.respuesta
-  const correct = gameStore.selectedAnswer === correctAnswer
-  if (correct) {
-    gameStore.score += 1
-    gameStore.playerPoints += 10
-  } else {
-    gameStore.score += 0
+
+  if (timeout) {
+    // si se acabó el tiempo: muestro mensaje y aplico penalización
+    gameStore.songTitle = `Tiempo agotado — era: ${correctAnswer || '—'}`
+    gameStore.songSubtitle = `${correctAnswer || ''} — ${currentQuestion.value?.artista || ''}`
     gameStore.playerPoints -= 5
+  } else {
+    // user respondió: compruebo si es correcta y actualizo score/points
+    const correct = gameStore.selectedAnswer === correctAnswer
+    if (correct) {
+      gameStore.score += 1
+      gameStore.playerPoints += 10
+      gameStore.songTitle = `¡Correcto!`
+    } else {
+      gameStore.playerPoints -= 5
+      gameStore.songTitle = `Incorrecto. Era: ${correctAnswer || '—'}`
+    }
+    gameStore.songSubtitle = `${correctAnswer || ''} — ${currentQuestion.value?.artista || ''}`
   }
-  gameStore.songTitle = correct ? `¡Correcto!` : `Incorrecto. Era: ${correctAnswer || '—'}`
-  gameStore.songSubtitle = `${correctAnswer || ''} — ${currentQuestion.value?.artista || ''}`
+
+  // pongo el juego en modo "reviewing" para que el usuario vea resultado antes de siguiente
   gameStore.playingState = 'reviewing'
 }
 
-
+/* handleNext: pasa a la siguiente pregunta:
+   - limpia timeouts previos
+   - si se acabo el juego guarda log y finaliza
+   - arranca countdown + snippet para la siguiente */
 function handleNext() {
+  // limpio timeout de submit anterior si existe
+  clearSubmitTimeout()
+
   if (gameStore.currentIndex + 1 >= gameStore.playableSongs) {
-    // Guardamos log antes de terminar
     saveLog()
     finishGame()
     return
@@ -475,23 +568,26 @@ function handleNext() {
   gameStore.playingState = 'answering'
   gameStore.songTimer = 0
 
-  // Inicializamos tiempo de nueva pregunta
-  questionStartAt.value = Date.now()
+  // reinicio el contador de la pregunta y arranco reproducción
+  startQuestionCountdown()
+  playSnippet()
 }
 
-
+/* finishGame: dejo flags en finished y limpio reproducción */
 function finishGame() {
   gameStore.playingState = 'finished'
   gameStore.gameState = 'finished'
   clearPlayback()
 }
 
+/* handleReset: resetea todo el juego y la sesión (botón reiniciar) */
 function handleReset() {
   clearPlayback()
   sessionStorage.removeItem('username')
   if (typeof gameStore.resetGame === 'function') {
     gameStore.resetGame()
   } else {
+    // si no hay resetGame en el store, lo reseteo manualmente
     gameStore.playerName = ''
     gameStore.questions = []
     gameStore.currentIndex = 0
@@ -508,6 +604,7 @@ function handleReset() {
   questionStartAt.value = null
 }
 
+/* saveLog: construye entrada con stats y la manda al rankingStore */
 function saveLog() {
   try {
     const user = gameStore.playerName || sessionStorage.getItem('username') || 'Invitado'
@@ -522,7 +619,7 @@ function saveLog() {
       date: new Date().toISOString(),
     }
     console.log('[playview] Guardando -> Puntos:', entry.score, '| Tiempo total:', entry.timeSeconds.toFixed(2) + 's', '| Tiempo medio:', entry.avgTimeSeconds.toFixed(2) + 's')
-    rankingStore.addEntry(entry)
+    rankingStore.addEntry(entry) // llamo al store de ranking para persistir
   } catch (e) {
     console.warn('No se pudo guardar log:', e)
   }
