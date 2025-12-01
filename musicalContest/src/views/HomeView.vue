@@ -74,6 +74,17 @@
       />
     </div>
   </section>
+  <section class="bg-gradient-to-r from-primary to-secondary py-12">
+  <div class="max-w-3xl mx-auto text-center px-6 space-y-4">
+    <IconComponent icon="copyright" class="text-6xl"/>
+    <h2 class="text-2xl font-bold text-white">Aviso de Copyright</h2>
+    <p class="text-white/90">
+      Todas las canciones utilizadas en este juego están protegidas por derechos de autor.
+      Este contenido se utiliza exclusivamente con fines educativos y de homenaje a los artistas.
+      No se obtiene ningún beneficio económico de ninguna manera.
+    </p>
+  </div>
+</section>
 </template>
 
 <script setup>

@@ -2,9 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import rawQuestions from '@/data/questions.json'
 
-function shuffle(arr) {
-  return [...arr].sort(() => Math.random() - 0.5)
-}
+
 
 export const useGameStore = defineStore('game', () => { //Este store gestiona el estado del juego... Preguntas, puntuación, estado de reproducción...
   // Datos de estado
@@ -31,6 +29,10 @@ export const useGameStore = defineStore('game', () => { //Este store gestiona el
   const progressPercent = computed(() =>
     ((currentIndex.value) / playableSongs.value) * 100 + '%'
   )
+
+  function shuffle(arr) {
+    return [...arr].sort(() => Math.random() - 0.5)
+  }
 
   // Acciones
   function startGame() {
@@ -122,6 +124,7 @@ export const useGameStore = defineStore('game', () => { //Este store gestiona el
     submitAnswer,
     nextQuestion,
     endGame,
-    resetGame
+    resetGame,
+    shuffle
   }
 })

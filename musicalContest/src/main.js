@@ -28,7 +28,12 @@ import {
   faVolumeHigh,
   faPaperPlane,
   faArrowRight,
+  faArrowLeft,
   faCheck,
+  faRefresh,
+  faCopyright,
+  faTrophy,
+  faMedal,
 } from '@fortawesome/free-solid-svg-icons'
 
 library.add(
@@ -53,7 +58,12 @@ library.add(
   faVolumeHigh,
   faPaperPlane,
   faArrowRight,
-  faCheck
+  faArrowLeft,
+  faCheck,
+  faRefresh,
+  faCopyright,
+  faTrophy,
+  faMedal
 )
 
 const app = createApp(App)
