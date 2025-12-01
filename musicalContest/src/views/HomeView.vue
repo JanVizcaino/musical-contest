@@ -35,19 +35,19 @@
           title="Escucha"
           icon="headphones"
           description="Reproduce un fragmento de 5 segundos de una canción popular"
-          class="bg-primary"
+          iconBg="bg-primary"
         />
         <InfoCard
           title="Adivina"
           icon="bullseye"
           description="Elige la respuesta correcta entre 4 opciones posibles"
-          class="bg-secondary"
+          iconBg="bg-secondary"
         />
         <InfoCard
           title="Compite"
           icon="ranking-star"
           description="Gana 10 puntos por respuesta correcta y sube en el ranking"
-          class="bg-accent"
+          iconBg="bg-accent"
         />
       </div>
     </div>
