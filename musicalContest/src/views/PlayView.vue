@@ -571,6 +571,7 @@ function handleNext() {
   gameStore.currentIndex++
   gameStore.selectedAnswer = null
   gameStore.songTitle = ''
+  gameStore.songSubtitle = 'Esuchando...'
   gameStore.playingState = 'answering'
   gameStore.songTimer = 0
 
