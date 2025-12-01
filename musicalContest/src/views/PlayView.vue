@@ -1,5 +1,4 @@
 <template>
-  <!-- START SCREEN -->
   <section
     v-if="gameStore.gameState === 'start'"
     class="bg-gradient-primary h-screen flex justify-center items-center p-4"
@@ -226,12 +225,9 @@
 </template>
 
 <script setup>
-/* Imports: cosas que uso desde Vue, howler y mis stores/componentes */
-import { computed, ref, onUnmounted } from 'vue' // uso reactive/computed y un hook para limpiar al desmontar
-import { Howl } from 'howler' // librería para reproducir audio
-import { useGameStore } from '@/stores/game' // mi store del juego
+import { computed, ref, onUnmounted } from 'vue' 
+import { Howl } from 'howler'
 
-/* Componentes reutilizables que uso en la vista */
 import ButtonComponent from '@/components/ButtonComponent.vue'
 import InputComponent from '@/components/InputComponent.vue'
 import IconListComponent from '@/components/IconListComponent.vue'
@@ -239,14 +235,14 @@ import IconComponent from '@/components/IconComponent.vue'
 import OptionComponent from '@/components/OptionComponent.vue'
 import StatComponent from '@/components/StatComponent.vue'
 
-/* Store del ranking para guardar puntuaciones */
 import { useRankingStore } from '@/stores/ranking'
+import { useGameStore } from '@/stores/game' 
 
-/* Instancio los stores (los uso como singletons reactivamente) */
+
+/* instancio los stores */
 const rankingStore = useRankingStore()
 const gameStore = useGameStore()
 
-/* Variables para manejar la reproducción y temporizadores */
 let howlerPlayer = null // instancia Howl activa
 let playbackTimeout = null // timeout que para el snippet
 let progressInterval = null // interval que actualiza progreso
@@ -272,17 +268,17 @@ const currentQuestion = computed(() => {
 const progressWidth = computed(() => {
   if (!gameStore.playableSongs) return '0%'
   const pct = (gameStore.currentIndex / gameStore.playableSongs) * 100
-  return `${Math.max(0, Math.min(100, pct))}%` // lo aseguro entre 0 y 100
+  return `${Math.max(0, Math.min(100, pct))}%` 
 })
 
-/* más helpers reactivos para stats */
+/* helpers reactivos para stats */
 const totalQuestions = computed(() => gameStore.playableSongs || (gameStore.questions?.length || 0))
 const correctAnswers = computed(() => gameStore.score || 0)
 const accuracyPct = computed(() => totalQuestions.value ? Math.round((correctAnswers.value / totalQuestions.value) * 100) : 0)
 const totalResponseTime = computed(() => responseTimes.value.reduce((a, b) => a + b, 0))
 const avgResponseTime = computed(() => responseTimes.value.length ? (totalResponseTime.value / responseTimes.value.length) : 0)
 
-/* Frases graciosas según rendimiento (solo texto) */
+/* frases graciosas según rendimiento */
 const funnyPhrase = computed(() => {
   const c = correctAnswers.value
   const t = totalQuestions.value || 1
@@ -303,7 +299,7 @@ function formatTime(seconds) {
   return mm > 0 ? `${mm}m ${ss}s` : `${ss}s`
 }
 
-/* Limpia playback: para timeouts/intervals y libera Howler */
+/* limpia playback: para timeouts/intervals y libera Howler */
 function clearPlayback() {
   try {
     if (playbackTimeout) {
@@ -320,7 +316,7 @@ function clearPlayback() {
       howlerPlayer = null
     }
   } catch (e) {
-    console.warn('Error limpiando reproducción:', e) // no bloqueo la app si algo falla
+    console.warn('Error limpiando reproducción:', e) 
   } finally {
     gameStore.songTimer = 0 // reseteo contador visible
     snippetStartAt = 0 // reseteo punto de inicio
@@ -330,7 +326,7 @@ function clearPlayback() {
 /* cuando el componente se desmonta, me aseguro de limpiar todo */
 onUnmounted(() => clearPlayback())
 
-/* función trivial para resolver path (por si en el futuro quiero prefix) */
+/* función para resolver path  */
 function resolveSongPath(relPath) { return `${relPath}` }
 
 /* Reproduce el snippet de la canción actual:
@@ -426,7 +422,6 @@ function onSeekChange(value) {
   }
 }
 
-/* ----------------- Timeouts para submit automático ----------------- */
 /* Variable para guardar id del timeout de submit */
 let submitTimeoutId = null
 const QUESTION_TIMEOUT_MS = 10_000 // 10 segundos por pregunta
@@ -447,7 +442,7 @@ function startQuestionCountdown(ms = QUESTION_TIMEOUT_MS) {
   // Marco inicio de la pregunta (para medir tiempo de respuesta)
   questionStartAt.value = Date.now()
 
-  // Arranco timeout que llamará handleSubmit({ timeout: true }) pasado ms
+  // arranco timeout que llamará handleSubmit({ timeout: true }) pasado ms
   submitTimeoutId = setTimeout(() => {
     submitTimeoutId = null
     // Llamo a handleSubmit con try/catch por seguridad
@@ -458,7 +453,6 @@ function startQuestionCountdown(ms = QUESTION_TIMEOUT_MS) {
     }
   }, ms)
 }
-/* ------------------------------------------------------------------ */
 
 /* handleStartGame: valida nombre, prepara el juego y arranca la 1ª pregunta */
 function handleStartGame() {
@@ -471,27 +465,8 @@ function handleStartGame() {
   responseTimes.value = [] // limpio tiempos previos
   questionStartAt.value = null
 
-  if (typeof gameStore.startGame === 'function') {
-    gameStore.startGame() // si el store tiene startGame, lo uso
-  } else {
-    // si no, inicializo manualmente las preguntas/estado
-    gameStore.questions = Array.isArray(gameStore.questions) ? gameStore.questions : []
-    if (Array.isArray(gameStore.questions) && gameStore.questions.length > 0) {
-      gameStore.questions = gameStore.questions
-        .sort(() => Math.random() - 0.5)
-        .slice(0, gameStore.playableSongs)
-    }
-    gameStore.score = 0
-    gameStore.playerPoints = 0
-    gameStore.currentIndex = 0
-    gameStore.playingState = 'answering'
-    gameStore.songTimer = 0
-    gameStore.songTitle = ''
-    gameStore.songSubtitle = ''
-    gameStore.gameState = 'playing'
-  }
-
-  // Empezar la primera pregunta: arranco countdown y reproduzco snippet
+  gameStore.startGame() 
+  
   startQuestionCountdown()
   playSnippet()
 }
@@ -584,21 +559,8 @@ function finishGame() {
 function handleReset() {
   clearPlayback()
   sessionStorage.removeItem('username')
-  if (typeof gameStore.resetGame === 'function') {
-    gameStore.resetGame()
-  } else {
-    // si no hay resetGame en el store, lo reseteo manualmente
-    gameStore.playerName = ''
-    gameStore.questions = []
-    gameStore.currentIndex = 0
-    gameStore.selectedAnswer = null
-    gameStore.score = 0
-    gameStore.playerPoints = 0
-    gameStore.songTimer = 0
-    gameStore.songTitle = ''
-    gameStore.gameState = 'start'
-    gameStore.playingState = 'answering'
-  }
+  
+  gameStore.resetGame()
   
   responseTimes.value = []
   questionStartAt.value = null

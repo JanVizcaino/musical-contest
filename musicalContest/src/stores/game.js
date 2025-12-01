@@ -48,8 +48,6 @@ export const useGameStore = defineStore('game', () => { //Este store gestiona el
     gameState.value = 'playing'
   }
 
- 
-
   function submitAnswer() {
     if (!currentQuestion.value || !selectedAnswer.value) return
 
