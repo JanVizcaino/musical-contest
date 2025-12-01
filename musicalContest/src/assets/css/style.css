@@ -13,26 +13,30 @@
     'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
     'Segoe UI Symbol', 'Noto Color Emoji';
 
-  --color-primary: #2563eb;
-  --color-primary-light: #60a5fa;
-  --color-primary-dark: #1e3a8a;
-
-  --color-secondary: #8b5cf6;
-  --color-secondary-light: #c4b5fd;
-  --color-secondary-dark: #5b21b6;
-
-  --color-accent: #22c55e;
-  --color-accent-light: #86efac;
-  --color-accent-dark: #15803d;
-
-  --color-highlight: #ec4899;
-  --color-highlight-light: #f9a8d4;
-  --color-highlight-dark: #9d174d;
-
-  --color-bg: #0f172a;
-  --color-surface: #1e293b;
-  --color-text-light: #f1f5f9;
-  --color-text-dark: #0f172a;
+    /* Colores Principales (Malva) */
+    --color-primary: #a766c8;         /* Malva (ej: tono base) */
+    --color-primary-light: #d8b8e6;   /* Malva Claro */
+    --color-primary-dark: #7b4c96;    /* Malva Oscuro */
+    
+    /* Colores Secundarios (Lila Oscuro) */
+    --color-secondary: #5b21b6;       /* Lila Oscuro (similar a tu anterior secondary-dark) */
+    --color-secondary-light: #9d77e6; /* Lila Oscuro Claro */
+    --color-secondary-dark: #3a157a;  /* Lila Muy Oscuro */
+    
+    /* Colores de Acento (Gris Muy Oscuro) */
+    --color-accent: #1f2937;          /* Gris Muy Oscuro (casi negro) */
+    --color-accent-light: #4b5563;    /* Gris Medio */
+    --color-accent-dark: #0f172a;     /* Gris Casi Negro (similar a tu anterior bg) */
+    
+    /* Otros colores (sin cambios) */
+    --color-highlight: #ec4899;
+    --color-highlight-light: #f9a8d4;
+    --color-highlight-dark: #9d174d;
+    
+    --color-bg: #0f172a;
+    --color-surface: #1e293b;
+    --color-text-light: #f1f5f9;
+    --color-text-dark: #0f172a;
 }
 
 @layer components{
