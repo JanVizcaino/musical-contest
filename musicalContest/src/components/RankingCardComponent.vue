@@ -1,38 +1,53 @@
 <template>
   <div
     :class="[
-      'rounded-2xl flex justify-between items-center p-4 mb-3 shadow-lg transition-transform transform hover:scale-105 hover:shadow-2xl',
+      'rounded-2xl flex flex-col sm:flex-row justify-between items-center p-4 mb-3 shadow-lg transition-transform transform hover:scale-105 hover:shadow-2xl gap-4 sm:gap-0',
       borderColor,
       bgColor
     ]"
   >
-    <div class="flex items-center gap-4">
-      <!-- Icono según posición con tamaño variable -->
-      <div :class="iconContainerClass">
+    <div class="flex items-center gap-4 w-full sm:w-auto">
+      <!-- Icono según posición -->
+      <div :class="`${iconContainerClass} flex-shrink-0`">
         <IconComponent :icon="iconName" />
       </div>
 
-      <div class="flex flex-col">
-        <!-- Usuario y posición -->
-        <div class="flex items-baseline gap-2">
-          <p :class="userClass">{{ user }}</p>
+      <div class="flex flex-col w-full">
+        <!-- Usuario + posición -->
+        <div class="flex flex-wrap items-baseline gap-2">
+          <p :class="userClass + ' break-all'">{{ user }}</p>
           <p class="text-gray-700 font-medium">#{{ String(pos) }}</p>
         </div>
 
-        <!-- Score y fecha -->
-        <div class="flex items-center gap-4 mt-1 text-sm">
-          <p class="text-gray-800">{{ score }}% de precisión</p><span class="text-gray-400">|</span> 
-          <p class="text-gray-800">{{seconds}}s de tiempo total </p><span class="text-gray-400">|</span> 
-          <p class="text-gray-800">{{avgSeconds}}s tiempo medio </p><span class="text-gray-400">|</span> 
-          <p class="text-gray-400 text-sm">{{ formattedDate }}</p>
+        <!-- Score + fecha -->
+        <div
+          class="flex flex-wrap items-center gap-2 mt-1 text-xs sm:text-sm md:text-base"
+        >
+          <p class="text-gray-800">{{ score }}% de precisión</p>
+          <span class="text-gray-400 hidden sm:inline">|</span>
+
+          <p class="text-gray-800">{{ seconds }}s total</p>
+          <span class="text-gray-400 hidden sm:inline">|</span>
+
+          <p class="text-gray-800">{{ avgSeconds }}s medio</p>
+          <span class="text-gray-400 hidden sm:inline">|</span>
+
+          <p class="text-gray-400 text-xs">{{ formattedDate }}</p>
         </div>
       </div>
     </div>
 
-    <!-- StatComponent para puntos -->
-    <StatComponent :stat="String(score)" title="puntos" class="ml-4 text-secondary" />
+    <!-- StatComponent -->
+    <div class="w-full sm:w-auto flex justify-center sm:justify-end">
+      <StatComponent
+        :stat="String(score)"
+        title="puntos"
+        class="text-secondary w-full sm:w-auto"
+      />
+    </div>
   </div>
 </template>
+
 
 <script setup>
 import { computed } from 'vue'

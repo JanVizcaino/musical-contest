@@ -3,24 +3,24 @@
     v-if="to"
     :to="to"
     :class="[
-      'flex items-center gap-2 px-5 py-2.5 shadow-md hover:shadow-lg transition-all duration-200 ease-in-out',
-      isActive ? 'bg-white text-secondary' : '',
+      'flex items-center gap-1 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 shadow-md hover:shadow-lg transition-all duration-200 ease-in-out text-sm sm:text-base',
+      isActive ? 'bg-white text-secondary' : ''
     ]"
   >
-    <IconComponent :icon="icon" />
-    <span v-if="label"
-      ><slot>{{ label }}</slot></span
-    >
+    <IconComponent :icon="icon" class="w-4 h-4 sm:w-5 sm:h-5" />
+    <span v-if="label" class="truncate">
+      <slot>{{ label }}</slot>
+    </span>
   </router-link>
 
   <button
     v-else
-    class="flex justify-center items-center gap-2 px-5 py-2.5 shadow-md hover:shadow-lg transition-all duration-200 ease-in-out"
+    class="flex justify-center items-center gap-1 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 shadow-md hover:shadow-lg transition-all duration-200 ease-in-out text-sm sm:text-base"
   >
-    <IconComponent :icon="icon" />
-    <span v-if="label"
-      ><slot>{{ label }}</slot></span
-    >
+    <IconComponent :icon="icon" class="w-4 h-4 sm:w-5 sm:h-5" />
+    <span v-if="label" class="truncate">
+      <slot>{{ label }}</slot>
+    </span>
   </button>
 </template>
 

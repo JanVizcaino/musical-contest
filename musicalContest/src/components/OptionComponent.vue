@@ -1,25 +1,48 @@
-<!-- Componente de opción--> 
+<!-- Componente de opción-->
 <template>
   <button
-    class="group w-full p-4 flex items-center justify-between bg-gray-50 border-2 rounded-xl transition-all duration-200 hover:border-primary hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1"
+    class="
+      group w-full p-4 flex items-center justify-between gap-3
+      bg-gray-50 border-2 rounded-xl
+      transition-all duration-200
+      hover:border-primary hover:shadow-md hover:-translate-y-0.5
+      focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1
+      disabled:opacity-60 disabled:cursor-not-allowed
+    "
     :class="buttonClasses"
     @click="handleClick"
     :disabled="isDisabled"
     aria-pressed="isSelected"
   >
-    <div class="flex items-center gap-3">
+    <!-- Contenido izquierdo -->
+    <div class="flex items-center gap-3 flex-1 min-w-0">
+      <!-- Burbuja letra -->
       <div
-        class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors"
+        class="
+          flex items-center justify-center
+          w-8 h-8 rounded-full text-sm font-bold
+          shrink-0 transition-colors
+        "
         :class="letterClasses"
       >
         {{ letter }}
       </div>
-      <span class="text-primary-dark font-medium text-left truncate">{{ text }}</span>
+
+      <!-- Texto, con responsive truncation -->
+      <span class="text-primary-dark font-medium text-left text-sm sm:text-base break-words">
+        {{ text }}
+      </span>
     </div>
 
-    <IconComponent v-if="isSelected || isCorrect" icon="check" class="text-primary" />
+    <!-- Icono de check alineado correctamente -->
+    <IconComponent
+      v-if="isSelected || isCorrect"
+      icon="check"
+      class="text-primary shrink-0 text-lg sm:text-xl"
+    />
   </button>
 </template>
+
 
 <script setup>
 import {computed} from 'vue'
